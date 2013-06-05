@@ -110,16 +110,29 @@ int dfs(Graph* maze, int v, int aim, int depth) {
       v = pop(open_nodes);
       if (v == aim) {
         //success = 1;
-
+        push(closed_nodes, v);
         for (i = 0 ; i <= closed_nodes->last ; i++) {
           printf("[%d]->", closed_nodes->values[i]);
         }
-        printf("[%d]\n", aim);
+        printf("\n");
+
+        //print_stack(closed_nodes);
+        //print_stack(open_nodes);
 
         int next;
         if (!empty_stack(open_nodes)) {
           next = pop(open_nodes);
-          while(parent[pop(closed_nodes)] != parent[next]);
+          int sair = 1;
+          int poped;
+          //while(parent[pop(closed_nodes)] != parent[next] || empty_stack(closed_nodes)) {
+          while(1) {
+            poped = pop(closed_nodes);
+            maze->visited_vertex[poped] = 0;
+            if (parent[poped] == parent[next])
+              break;
+            if (parent[poped] == -1)
+              break;
+          }
           push(open_nodes, next);
         }
       }
