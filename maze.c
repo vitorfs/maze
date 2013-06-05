@@ -19,7 +19,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "graph.h"
+#include "stack.h"
 
 int read_graph(char* filename, Graph* g) {
   FILE *PTRFILE;
@@ -60,9 +62,9 @@ int read_graph(char* filename, Graph* g) {
   return 0;
 }
 
-int busca_profundidade(Graph* maze, int vertex, int aim, int depth) {
+void dfs_r(Graph* maze, int vertex, int aim, int depth) {
   if (depth == 0) {
-    return -1;
+    return;
   }
   else {
     maze->visited_vertex[vertex] = 1;
@@ -71,15 +73,137 @@ int busca_profundidade(Graph* maze, int vertex, int aim, int depth) {
       if (maze->arcs[vertex][i] == 1 && maze->visited_vertex[i] == 0) { //possui adjacencia
         if (i == aim) { //achou o objetivo
           printf("\n");
-          return i;
         } 
         else {
-          printf(" <- %d", busca_profundidade(maze, i, aim, depth - 1));
+          printf("[%d]->", i);
+          dfs_r(maze, i, aim, depth - 1);
         }
       }
     }
-    return vertex;
   }
+}
+
+int dfs(Graph* maze, int v, int aim, int depth) {
+  int success = 0;
+  int fail = 0;
+  int i;
+  int j;
+  Stack* open_nodes = (Stack*) malloc(sizeof(Stack));
+  init_stack(open_nodes);
+  Stack* closed_nodes = (Stack*) malloc(sizeof(Stack));
+  init_stack(closed_nodes);
+  
+  int* parent = (int*) malloc(maze->vertex_count * sizeof(int));
+  for (i = 0 ; i < maze->vertex_count ; parent[i++] = -1);
+
+  push(open_nodes, v);
+
+  i = 0;
+
+  /*while (!(fail || success)) {
+    if (empty_stack(open_nodes)) {
+      fail = 1;
+    }
+    else {*/
+    while (!empty_stack(open_nodes)) {
+      int v;
+      v = pop(open_nodes);
+      if (v == aim) {
+        //success = 1;
+
+        for (i = 0 ; i <= closed_nodes->last ; i++) {
+          printf("[%d]->", closed_nodes->values[i]);
+        }
+        printf("[%d]\n", aim);
+
+        int next;
+        if (!empty_stack(open_nodes)) {
+          next = pop(open_nodes);
+          while(parent[pop(closed_nodes)] != parent[next]);
+          push(open_nodes, next);
+        }
+      }
+      else {
+        int i;
+        for (i = 0 ; i < maze->vertex_count ; i++) {
+          if (maze->arcs[v][i] == 1 && maze->visited_vertex[i] == 0) {
+            push(open_nodes, i);
+            parent[i] = v;
+          }
+        }
+        maze->visited_vertex[v] = 1;
+        push(closed_nodes, v);
+      }
+    //}
+    if (depth-- == 0) break;
+  //}
+  //print_stack(closed_nodes);
+  //success == 1 ? printf("A busca localizou o alvo.\n") : printf("A busca nao localizou o alvo.\n");
+    }
+  return success;
+}
+
+int dfs_2(Graph* maze, int v, int aim, int depth) {
+  int i;
+  int j;
+  Stack* open_nodes = (Stack*) malloc(sizeof(Stack));
+  init_stack(open_nodes);
+  Stack* closed_nodes = (Stack*) malloc(sizeof(Stack));
+  init_stack(closed_nodes);
+  
+  int* parent = (int*) malloc(maze->vertex_count * sizeof(int));
+  for (i = 0 ; i < maze->vertex_count ; parent[i++] = -1);
+
+  push(open_nodes, v);
+
+  i = 0;
+
+  while (!empty_stack(open_nodes)) {
+    int v;
+    v = pop(open_nodes);
+    if (v == aim) {
+      int x;
+      print_stack(closed_nodes);
+      while(x = parent[pop(closed_nodes)] != parent[open_nodes->values[open_nodes->last]]) {
+        maze->visited_vertex[x] = 0;
+      }
+      print_stack(closed_nodes);
+    }
+    else {
+      int i;
+      for (i = 0 ; i < maze->vertex_count ; i++) {
+        if (maze->arcs[v][i] == 1 && maze->visited_vertex[i] == 0) {
+          push(open_nodes, i);
+          parent[i] = v;
+        }
+      }
+      maze->visited_vertex[v] = 1;
+      push(closed_nodes, v);
+    }
+  }
+  return 0;
+}
+
+void print_maze(Graph* graph) {
+  int maze_size = sqrt(graph->vertex_count);
+  int i;
+  int j;
+  int k;
+
+  for (i = 0, k = 0 ; i < maze_size ; i++) {
+    for (j = 0 ; j < maze_size ; j++, k++) {
+      int* adj = get_adjacency(graph, k);
+      if (adj[0] > 0) {
+        printf("[%2d . ]", k);
+      } 
+      else {
+        printf("[%2d # ]", k);  
+      }
+      free(adj);
+    }
+    printf("\n");
+  }
+
 }
 
 /*
@@ -90,6 +214,7 @@ int busca_profundidade(Graph* maze, int vertex, int aim, int depth) {
  * 4 depth limit
  */
 int main(int argc, char* argv[]) {
+  
   char* filename;
   int read_status = -1;
   int start;
@@ -121,7 +246,10 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  busca_profundidade(graph, start, aim, limit);
+  print_maze(graph);
+  printf("\n");
+  dfs(graph, start, aim, limit);
+  //dfs_r(graph, start, aim, limit);
 
   return 0;
 }
